@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Racing Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🏁 Car Racing Championship 🏁</h1>
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="label">Lap:</span>
+                    <span id="lap-counter">1/3</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Position:</span>
+                    <span id="position">1st</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Speed:</span>
+                    <span id="speed">0 km/h</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Controls</h3>
+                    <p>🔄 Arrow Keys or WASD to drive</p>
+                    <p>🚀 Space to boost (limited)</p>
+                    <p>🔄 R to restart race</p>
+                    <button id="editor-btn" class="editor-btn">🎨 Track Editor</button>
+                    <button id="load-track-btn" class="load-track-btn">📁 Load Track File</button>
+                </div>
+                
+                <div class="score-panel">
+                    <h3>🏁 Race Progress</h3>
+                    <div class="score-item">
+                        <span class="label">Current Lap:</span>
+                        <span id="current-lap">1/3</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="label">Checkpoint:</span>
+                        <span id="current-checkpoint">0/6</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="label">Lap Progress:</span>
+                        <span id="lap-progress">0%</span>
+                    </div>
+                </div>
+                
+                <div class="difficulty-panel">
+                    <h3>🎯 Difficulty</h3>
+                    <div class="difficulty-buttons">
+                        <button id="easy-btn" class="difficulty-btn easy-btn active">Easy</button>
+                        <button id="hard-btn" class="difficulty-btn hard-btn">Hard</button>
+                    </div>
+                    <div class="difficulty-info">
+                        <span id="difficulty-info">Easy: AI max speed 10 km/h</span>
+                    </div>
+                </div>
+                
+                <div class="boost-meter">
+                    <div class="boost-label">Boost</div>
+                    <div class="boost-bar">
+                        <div id="boost-fill" class="boost-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-overlay" id="gameOverlay">
+            <div class="overlay-content">
+                <h2 id="overlay-title">Ready to Race?</h2>
+                <p id="overlay-message">Press any key to start the race!</p>
+                <button id="restart-btn" class="restart-btn">Restart Race</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html> 
