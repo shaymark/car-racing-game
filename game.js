@@ -6,6 +6,7 @@ class CarRacingGame {
         
         // Game settings
         this.laps = 3;
+        this.totalLaps = 3; // Set total laps for AI cars
         this.currentLap = 1;
         this.playerPosition = 1;
         this.totalCars = 4;
@@ -19,8 +20,8 @@ class CarRacingGame {
         this.trackHeight = 600;
         this.laneWidth = 120;
         
-        // Check for custom track
-        this.customTrack = this.loadCustomTrack();
+        // Load default track from my_track.json
+        this.loadDefaultTrack();
         
         // Debug mode for collision visualization (disabled by default)
         this.debugMode = false;
@@ -62,6 +63,35 @@ class CarRacingGame {
         
         // Start game loop
         this.gameLoop();
+    }
+    
+    loadDefaultTrack() {
+        // First try to load from localStorage (user's custom track)
+        const customTrack = this.loadCustomTrack();
+        if (customTrack) {
+            this.customTrack = customTrack;
+            console.log('Loaded custom track from localStorage');
+            return;
+        }
+        
+        // If no custom track, try to load my_track.json as default
+        fetch('my_track.json')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('my_track.json not found, using built-in default track');
+                }
+            })
+            .then(trackData => {
+                console.log('Loaded default track from my_track.json:', trackData);
+                this.loadTrackData(trackData);
+            })
+            .catch(error => {
+                console.log('Using built-in default track:', error.message);
+                // Use built-in default track if my_track.json doesn't exist
+                this.customTrack = null;
+            });
     }
     
     loadCustomTrack() {
@@ -228,7 +258,7 @@ class CarRacingGame {
             const speedVariation = Math.random() * 2;
             
             // Apply difficulty-based speed limit
-            const maxSpeed = this.aiMaxSpeed / 3.6; // Convert km/h to pixels per frame
+            const maxSpeed = this.difficulty === 'easy' ? 0.2 : 8; // Direct pixel values
             
             this.aiCars.push({
                 x: startPositions[i].x,
@@ -245,7 +275,9 @@ class CarRacingGame {
                 // Stuck detection properties
                 stuckTimer: 0,
                 stuckAttempts: 0,
-                stuckThreshold: 120 + Math.random() * 60, // 2-3 seconds with variation
+                stuckThreshold: this.difficulty === 'easy' 
+                    ? 600 + Math.random() * 300  // 10-15 seconds for easy mode
+                    : 120 + Math.random() * 60,  // 2-3 seconds for hard mode
                 lastPosition: { x: startPositions[i].x, y: startPositions[i].y }
             });
         }
@@ -526,7 +558,6 @@ class CarRacingGame {
     
     setDifficulty(difficulty) {
         this.difficulty = difficulty;
-        this.aiMaxSpeed = difficulty === 'easy' ? 10 : 15; // 10 km/h for easy, 15 km/h for hard
         
         // Update button states
         this.easyBtn.classList.toggle('active', difficulty === 'easy');
@@ -534,15 +565,22 @@ class CarRacingGame {
         
         // Update difficulty info
         this.difficultyInfo.textContent = difficulty === 'easy' 
-            ? 'Easy: AI max speed 10 km/h' 
-            : 'Hard: AI max speed 15 km/h';
+            ? 'Easy: AI max speed 0.2 pixels/frame, stuck timeout 10-15s' 
+            : 'Hard: AI max speed 8 pixels/frame, stuck timeout 2-3s';
         
-        // Update AI cars speed
+        // Update AI cars speed and stuck threshold - direct pixel values
         this.aiCars.forEach(car => {
-            car.maxSpeed = this.aiMaxSpeed / 3.6; // Convert km/h to pixels per frame
+            if (difficulty === 'easy') {
+                car.maxSpeed = 0.2; // Very slow for easy mode
+                car.speed = Math.min(car.speed, 0.2); // Immediately slow down current speed
+                car.stuckThreshold = 600 + Math.random() * 300; // 10-15 seconds for easy mode
+            } else {
+                car.maxSpeed = 8; // Normal speed for hard mode
+                car.stuckThreshold = 120 + Math.random() * 60; // 2-3 seconds for hard mode
+            }
         });
         
-        console.log(`Difficulty set to ${difficulty}, AI max speed: ${this.aiMaxSpeed} km/h`);
+        console.log(`Difficulty set to ${difficulty}, AI max speed: ${difficulty === 'easy' ? 2 : 8} pixels/frame`);
     }
     
     updateScoreDisplay() {
@@ -646,7 +684,27 @@ class CarRacingGame {
     }
     
     updateAICars() {
-        this.aiCars.forEach(car => {
+        for (let i = 0; i < this.aiCars.length; i++) {
+            const car = this.aiCars[i];
+            let carFinished = false; // Flag to track if this car finished
+            
+            // Skip all processing if car has finished all laps
+            if (car.lap >= this.totalLaps) {
+                car.speed = 0;
+                if (car.velocity) {
+                    car.velocity.x = 0;
+                    car.velocity.y = 0;
+                }
+                car.finished = true;
+                console.log(`AI car ${i} FINISHED - lap ${car.lap}/${this.totalLaps} - STOPPING`);
+                continue; // Skip this car entirely
+            }
+            
+            // Debug: Log when car is about to finish
+            if (car.lap === this.totalLaps - 1 && car.checkpoint === this.checkpoints.length - 1) {
+                console.log(`AI car ${i} about to finish - lap ${car.lap}/${this.totalLaps}, checkpoint ${car.checkpoint}/${this.checkpoints.length - 1}`);
+            }
+            
             // Initialize stuck detection if not exists
             if (!car.stuckTimer) car.stuckTimer = 0;
             if (!car.lastPosition) car.lastPosition = { x: car.x, y: car.y };
@@ -722,6 +780,12 @@ class CarRacingGame {
             
             // Adjust speed based on behavior, distance, and track section
             let targetSpeed = car.maxSpeed;
+            
+            // Apply difficulty-based speed limit first
+            if (this.difficulty === 'easy') {
+                targetSpeed = 0.2; // Very slow for easy mode - force it to be slow
+            }
+            
             if (car.aiBehavior === 'conservative') {
                 targetSpeed *= 0.8;
             }
@@ -738,6 +802,16 @@ class CarRacingGame {
                 car.speed = Math.min(car.speed + 0.1, targetSpeed);
             } else {
                 car.speed = Math.max(car.speed - 0.05, targetSpeed);
+            }
+            
+            // Force speed limit for easy mode
+            if (this.difficulty === 'easy') {
+                car.speed = Math.min(car.speed, 0.2);
+            }
+            
+            // Debug: Log speed for first AI car
+            if (i === 0) {
+                console.log(`AI car speed: ${car.speed.toFixed(2)}, maxSpeed: ${car.maxSpeed}, difficulty: ${this.difficulty}, lap: ${car.lap}/${this.totalLaps}`);
             }
             
             // Update position
@@ -770,10 +844,28 @@ class CarRacingGame {
                 car.checkpoint = (car.checkpoint + 1) % this.checkpoints.length;
                 if (car.checkpoint === 0) {
                     car.lap++;
+                    console.log(`AI car ${i} completed lap ${car.lap - 1} -> ${car.lap}/${this.totalLaps}`);
+                    
+                    // Immediately stop if this was the final lap
+                    if (car.lap >= this.totalLaps) {
+                        car.speed = 0;
+                        if (car.velocity) {
+                            car.velocity.x = 0;
+                            car.velocity.y = 0;
+                        }
+                        car.finished = true;
+                        console.log(`AI car ${i} FINISHED RACE - lap ${car.lap}/${this.totalLaps} - IMMEDIATE STOP`);
+                        carFinished = true; // Set flag to true
+                    }
                 }
                 car.stuckTimer = 0; // Reset stuck timer when checkpoint reached
             }
-        });
+            
+            // Skip remaining processing if car finished
+            if (carFinished) {
+                continue;
+            }
+        }
     }
     
     handleStuckAI(car) {
@@ -806,6 +898,19 @@ class CarRacingGame {
             car.checkpoint = (car.checkpoint + 1) % this.checkpoints.length;
             if (car.checkpoint === 0) {
                 car.lap++;
+                console.log(`AI car stuck recovery - completed lap ${car.lap - 1} -> ${car.lap}/${this.totalLaps}`);
+                
+                // Stop if this was the final lap
+                if (car.lap >= this.totalLaps) {
+                    car.speed = 0;
+                    if (car.velocity) {
+                        car.velocity.x = 0;
+                        car.velocity.y = 0;
+                    }
+                    car.finished = true;
+                    console.log(`AI car FINISHED RACE during stuck recovery - lap ${car.lap}/${this.totalLaps}`);
+                    return; // Exit the function
+                }
             }
             
             // Reset stuck state
@@ -910,17 +1015,30 @@ class CarRacingGame {
             progress: this.calculateCarProgress(car)
         }));
         
+        // Debug: Log progress for each car
+        positions.forEach((pos, i) => {
+            const carType = i === 0 ? 'Player' : `AI ${i}`;
+            const finished = pos.car.finished || (pos.car.lap >= this.totalLaps);
+            console.log(`${carType} car: progress ${pos.progress}, lap ${pos.car.lap}, checkpoint ${pos.car.checkpoint}, finished: ${finished}`);
+        });
+        
         positions.sort((a, b) => b.progress - a.progress);
         
         // Find player position
         const playerPos = positions.find(p => p.index === 0);
         this.playerPosition = positions.indexOf(playerPos) + 1;
+        
+        console.log(`Player position: ${this.playerPosition} out of ${positions.length}`);
     }
     
     calculateCarProgress(car) {
         if (car === this.playerCar) {
             return (this.currentLap - 1) * this.checkpoints.length + this.currentCheckpoint;
         } else {
+            // If AI car has finished the race, give it maximum progress
+            if (car.finished || car.lap >= this.totalLaps) {
+                return this.totalLaps * this.checkpoints.length; // Maximum possible progress
+            }
             return (car.lap - 1) * this.checkpoints.length + car.checkpoint;
         }
     }
@@ -949,6 +1067,11 @@ class CarRacingGame {
         
         // Update score display
         this.updateScoreDisplay();
+        
+        // Show current difficulty in header
+        const difficultyText = this.difficulty === 'easy' ? 'EASY' : 'HARD';
+        const difficultyColor = this.difficulty === 'easy' ? '#2ecc71' : '#e74c3c';
+        this.positionDisplay.innerHTML = `${this.playerPosition}${this.getOrdinalSuffix(this.playerPosition)} <span style="color: ${difficultyColor}; font-size: 0.8em;">(${difficultyText})</span>`;
         
         // Show off-track warning
         if (!this.isCarOnTrack(this.playerCar)) {
