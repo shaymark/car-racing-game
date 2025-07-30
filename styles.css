@@ -323,6 +323,118 @@ body {
     display: none !important;
 }
 
+/* Mobile Touch Controllers */
+.mobile-controllers {
+    display: none; /* Hidden by default, shown only on mobile */
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 20px;
+    pointer-events: none; /* Allow touches to pass through to game */
+}
+
+.gesture-area {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    pointer-events: auto; /* Re-enable pointer events for this element */
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.gesture-area.active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+.left-gesture {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: rgba(46, 204, 113, 0.4);
+}
+
+.left-gesture.active {
+    background: rgba(46, 204, 113, 0.4);
+}
+
+.right-gesture {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: rgba(52, 152, 219, 0.4);
+}
+
+.right-gesture.active {
+    background: rgba(52, 152, 219, 0.4);
+}
+
+.gesture-indicator {
+    font-size: 20px;
+    color: white;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.boost-controller {
+    position: absolute;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.control-btn:active,
+.control-btn.active {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0.95);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.boost-btn {
+    background: rgba(255, 107, 107, 0.3);
+    border-color: rgba(255, 107, 107, 0.5);
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+}
+
+.boost-btn:active,
+.boost-btn.active {
+    background: rgba(255, 107, 107, 0.6);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .game-container {
@@ -351,5 +463,15 @@ body {
     
     .controls {
         min-width: 200px;
+    }
+    
+    /* Show mobile controllers on mobile devices */
+    .mobile-controllers {
+        display: flex;
+    }
+    
+    /* Hide mobile controls text on mobile since we have actual buttons */
+    .mobile-controls {
+        display: none;
     }
 } 

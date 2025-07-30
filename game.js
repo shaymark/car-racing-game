@@ -510,6 +510,12 @@ class CarRacingGame {
                 return; // Don't process as game control
             }
             
+            // Handle mobile controller toggle (for testing)
+            if (e.key === 'm' || e.key === 'M') {
+                this.toggleMobileControllers();
+                return; // Don't process as game control
+            }
+            
             console.log('Checking game state condition:', this.gameState === 'playing' || this.gameState === 'racing', 'gameState:', this.gameState, 'expected:', 'playing or racing');
             
             if (this.gameState === 'playing' || this.gameState === 'racing') {
@@ -596,6 +602,10 @@ class CarRacingGame {
             return;
         }
         
+        // Setup mobile touch controllers
+        this.setupMobileControllers();
+        
+        // Legacy canvas touch controls (for non-mobile or fallback)
         let touchStartX = 0;
         let touchStartY = 0;
         let isTouching = false;
@@ -701,6 +711,294 @@ class CarRacingGame {
         }
         
         console.log('Touch controls setup complete');
+    }
+    
+    setupMobileControllers() {
+        console.log('Setting up mobile controllers...');
+        
+        // Check if we're on a mobile device
+        const isMobile = this.isMobileDevice();
+        const mobileControllers = document.getElementById('mobileControllers');
+        
+        if (mobileControllers) {
+            if (isMobile) {
+                mobileControllers.style.display = 'flex';
+                console.log('Mobile device detected - showing mobile controllers');
+            } else {
+                mobileControllers.style.display = 'none';
+                console.log('Desktop device detected - hiding mobile controllers');
+            }
+        }
+        
+        // Get gesture areas and boost button
+        const leftGestureArea = document.getElementById('leftGestureArea');
+        const rightGestureArea = document.getElementById('rightGestureArea');
+        const boostBtn = document.getElementById('boostBtn');
+        
+        if (!leftGestureArea || !rightGestureArea || !boostBtn) {
+            console.error('Mobile controller elements not found');
+            return;
+        }
+        
+        // Initialize touch tracking
+        this.activeTouches = new Map(); // Track all active touches
+        this.gestureStates = {
+            left: { accelerating: false, braking: false },
+            right: { turningLeft: false, turningRight: false }
+        };
+        
+        // Left gesture area (up/down)
+        this.setupGestureArea(leftGestureArea, 'left', (direction) => {
+            if (this.gameState === 'playing' || this.gameState === 'racing') {
+                if (direction === 'up') {
+                    this.playerCar.accelerating = true;
+                    this.playerCar.braking = false;
+                } else if (direction === 'down') {
+                    this.playerCar.accelerating = false;
+                    this.playerCar.braking = true;
+                } else if (direction === 'none') {
+                    this.playerCar.accelerating = false;
+                    this.playerCar.braking = false;
+                }
+            }
+        });
+        
+        // Right gesture area (left/right)
+        this.setupGestureArea(rightGestureArea, 'right', (direction) => {
+            if (this.gameState === 'playing' || this.gameState === 'racing') {
+                if (direction === 'left') {
+                    this.playerCar.turningLeft = true;
+                    this.playerCar.turningRight = false;
+                } else if (direction === 'right') {
+                    this.playerCar.turningLeft = false;
+                    this.playerCar.turningRight = true;
+                } else if (direction === 'none') {
+                    this.playerCar.turningLeft = false;
+                    this.playerCar.turningRight = false;
+                }
+            }
+        });
+        
+        // Boost button
+        boostBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.gameState === 'playing' || this.gameState === 'racing') {
+                this.playerCar.boosting = true;
+                boostBtn.classList.add('active');
+                console.log('Mobile: Boost pressed');
+            }
+        });
+        
+        boostBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.playerCar.boosting = false;
+            boostBtn.classList.remove('active');
+            console.log('Mobile: Boost released');
+        });
+        
+        // Mouse support for testing on desktop
+        boostBtn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (this.gameState === 'playing' || this.gameState === 'racing') {
+                this.playerCar.boosting = true;
+                boostBtn.classList.add('active');
+            }
+        });
+        
+        boostBtn.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            this.playerCar.boosting = false;
+            boostBtn.classList.remove('active');
+        });
+        
+        console.log('Mobile gesture controllers setup complete');
+    }
+    
+    setupGestureArea(element, side, callback) {
+        const rect = element.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Touch events
+        element.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleTouchStart(e, side, centerX, centerY, callback);
+        });
+        
+        element.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            this.handleTouchMove(e, side, centerX, centerY, callback);
+        });
+        
+        element.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.handleTouchEnd(e, side, callback);
+        });
+        
+        element.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            this.handleTouchEnd(e, side, callback);
+        });
+        
+        // Mouse events for desktop testing
+        element.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.handleMouseDown(e, side, centerX, centerY, callback);
+        });
+        
+        element.addEventListener('mousemove', (e) => {
+            e.preventDefault();
+            this.handleMouseMove(e, side, centerX, centerY, callback);
+        });
+        
+        element.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            this.handleMouseUp(e, side, callback);
+        });
+        
+        element.addEventListener('mouseleave', (e) => {
+            e.preventDefault();
+            this.handleMouseUp(e, side, callback);
+        });
+    }
+    
+    handleTouchStart(e, side, centerX, centerY, callback) {
+        for (let touch of e.changedTouches) {
+            const touchId = touch.identifier;
+            this.activeTouches.set(touchId, {
+                side: side,
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY,
+                centerX: centerX,
+                centerY: centerY
+            });
+        }
+        this.updateGestureState(side, centerX, centerY, callback);
+    }
+    
+    handleTouchMove(e, side, centerX, centerY, callback) {
+        for (let touch of e.changedTouches) {
+            const touchId = touch.identifier;
+            const touchData = this.activeTouches.get(touchId);
+            if (touchData && touchData.side === side) {
+                touchData.currentX = touch.clientX;
+                touchData.currentY = touch.clientY;
+            }
+        }
+        this.updateGestureState(side, centerX, centerY, callback);
+    }
+    
+    handleTouchEnd(e, side, callback) {
+        for (let touch of e.changedTouches) {
+            const touchId = touch.identifier;
+            this.activeTouches.delete(touchId);
+        }
+        this.updateGestureState(side, 0, 0, callback);
+    }
+    
+    handleMouseDown(e, side, centerX, centerY, callback) {
+        this.activeTouches.set('mouse', {
+            side: side,
+            startX: e.clientX,
+            startY: e.clientY,
+            currentX: e.clientX,
+            currentY: e.clientY,
+            centerX: centerX,
+            centerY: centerY
+        });
+        this.updateGestureState(side, centerX, centerY, callback);
+    }
+    
+    handleMouseMove(e, side, centerX, centerY, callback) {
+        const touchData = this.activeTouches.get('mouse');
+        if (touchData && touchData.side === side) {
+            touchData.currentX = e.clientX;
+            touchData.currentY = e.clientY;
+            this.updateGestureState(side, centerX, centerY, callback);
+        }
+    }
+    
+    handleMouseUp(e, side, callback) {
+        this.activeTouches.delete('mouse');
+        this.updateGestureState(side, 0, 0, callback);
+    }
+    
+    updateGestureState(side, centerX, centerY, callback) {
+        const touches = Array.from(this.activeTouches.values()).filter(t => t.side === side);
+        
+        if (touches.length === 0) {
+            // No touches on this side, reset state
+            callback('none');
+            const element = document.getElementById(side === 'left' ? 'leftGestureArea' : 'rightGestureArea');
+            if (element) element.classList.remove('active');
+            return;
+        }
+        
+        // Calculate the dominant gesture from all touches on this side
+        let totalDeltaX = 0;
+        let totalDeltaY = 0;
+        
+        for (let touch of touches) {
+            const deltaX = touch.currentX - touch.centerX;
+            const deltaY = touch.currentY - touch.centerY;
+            totalDeltaX += deltaX;
+            totalDeltaY += deltaY;
+        }
+        
+        // Average the deltas
+        const avgDeltaX = totalDeltaX / touches.length;
+        const avgDeltaY = totalDeltaY / touches.length;
+        
+        // Determine gesture direction
+        const threshold = 20; // Minimum distance for gesture detection
+        let direction = 'none';
+        
+        if (side === 'left') {
+            // Left area: up/down gestures
+            if (Math.abs(avgDeltaY) > threshold) {
+                direction = avgDeltaY < 0 ? 'up' : 'down';
+            }
+        } else {
+            // Right area: left/right gestures
+            if (Math.abs(avgDeltaX) > threshold) {
+                direction = avgDeltaX < 0 ? 'left' : 'right';
+            }
+        }
+        
+        // Update visual feedback
+        const element = document.getElementById(side === 'left' ? 'leftGestureArea' : 'rightGestureArea');
+        if (element) {
+            if (direction !== 'none') {
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+            }
+        }
+        
+        // Call the callback with the detected direction
+        callback(direction);
+        
+        console.log(`Gesture ${side}: ${direction} (${touches.length} touches)`);
+    }
+    
+    isMobileDevice() {
+        // Check for mobile device using user agent and touch capability
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        return isMobileUA || hasTouch;
+    }
+    
+    toggleMobileControllers() {
+        const mobileControllers = document.getElementById('mobileControllers');
+        if (mobileControllers) {
+            const isVisible = mobileControllers.style.display === 'flex';
+            mobileControllers.style.display = isVisible ? 'none' : 'flex';
+            console.log(`Mobile controllers ${isVisible ? 'hidden' : 'shown'} (manual toggle)`);
+        }
     }
     
     setupUI() {
