@@ -2,6 +2,10 @@
 
 A fun and interactive car racing game built with HTML5 Canvas and JavaScript, featuring mobile gesture controls, AI opponents, and customizable tracks.
 
+## 🎮 Play Now!
+
+**🌐 Live Demo**: [https://shaymark.github.io/car-racing-game/](https://shaymark.github.io/car-racing-game/)
+
 ## 🎮 Features
 
 ### **Gameplay**
@@ -173,4 +177,4 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 
 ---
 
-**Enjoy racing! 🏎️💨** 
+**Enjoy racing! 🏎️💨**
