@@ -36,8 +36,8 @@ class CarRacingGame {
             maxSpeed: 8,
             acceleration: 0.2,
             deceleration: 0.1,
-            turnSpeed: 0.05,
-            angle: 0,
+            turnSpeed: 3,
+            angle: 90, // Face right (east) to match track direction
             boost: 100,
             maxBoost: 100,
             boostRecharge: 0.5,
@@ -279,6 +279,7 @@ class CarRacingGame {
                 speed: baseSpeed + speedVariation,
                 maxSpeed: Math.min(baseSpeed + 2 + speedVariation, maxSpeed), // Limited by difficulty
                 angle: startPositions[i].angle,
+                turnSpeed: 3, // Match player car turn speed
                 color: colors[i],
                 checkpoint: 0,
                 lap: 1,
@@ -494,15 +495,32 @@ class CarRacingGame {
         
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            console.log('Key pressed:', e.key, 'Game state:', this.gameState);
+            console.log('Key pressed:', e.key, 'Game state:', this.gameState, 'Type:', typeof this.gameState);
             
-            if (this.gameState === 'playing') {
+            // Handle debug mode first (before game controls)
+            if (e.key === 'd' || e.key === 'D') {
+                this.debugMode = !this.debugMode;
+                console.log('Debug mode:', this.debugMode);
+                return; // Don't process as game control
+            }
+            
+            // Handle restart
+            if (e.key === 'r' || e.key === 'R') {
+                this.restartRace();
+                return; // Don't process as game control
+            }
+            
+            console.log('Checking game state condition:', this.gameState === 'playing' || this.gameState === 'racing', 'gameState:', this.gameState, 'expected:', 'playing or racing');
+            
+            if (this.gameState === 'playing' || this.gameState === 'racing') {
+                console.log('Processing key in playing state:', e.key);
                 switch(e.key) {
                     case 'ArrowUp':
                     case 'w':
                     case 'W':
-                        console.log('Accelerating');
+                        console.log('Setting accelerating to true');
                         this.playerCar.accelerating = true;
+                        console.log('Accelerating after set:', this.playerCar.accelerating);
                         break;
                     case 'ArrowDown':
                     case 's':
@@ -517,8 +535,6 @@ class CarRacingGame {
                         this.playerCar.turningLeft = true;
                         break;
                     case 'ArrowRight':
-                    case 'd':
-                    case 'D':
                         console.log('Turning right');
                         this.playerCar.turningRight = true;
                         break;
@@ -526,16 +542,11 @@ class CarRacingGame {
                         console.log('Boosting');
                         this.playerCar.boosting = true;
                         break;
+                    default:
+                        console.log('Key not handled:', e.key);
                 }
-            }
-            
-            if (e.key === 'r' || e.key === 'R') {
-                this.restartRace();
-            }
-            
-            if (e.key === 'd' || e.key === 'D') {
-                this.debugMode = !this.debugMode;
-                console.log('Debug mode:', this.debugMode);
+            } else {
+                console.log('Game state not playing, ignoring key:', e.key);
             }
         });
         
@@ -557,8 +568,6 @@ class CarRacingGame {
                     this.playerCar.turningLeft = false;
                     break;
                 case 'ArrowRight':
-                case 'd':
-                case 'D':
                     this.playerCar.turningRight = false;
                     break;
                 case ' ':
@@ -571,6 +580,11 @@ class CarRacingGame {
         this.setupTouchControls();
         
         console.log('Input handling setup complete');
+        
+        // Test if event listener is working
+        console.log('Testing input handling...');
+        console.log('Current game state:', this.gameState);
+        console.log('Player car accelerating property:', this.playerCar.accelerating);
     }
     
     setupTouchControls() {
@@ -591,7 +605,7 @@ class CarRacingGame {
             e.preventDefault();
             console.log('Touch start, game state:', this.gameState);
             
-            if (this.gameState !== 'playing') return;
+            if (this.gameState !== 'playing' && this.gameState !== 'racing') return;
             
             const touch = e.touches[0];
             touchStartX = touch.clientX;
@@ -606,7 +620,7 @@ class CarRacingGame {
         // Touch move (steering)
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (!isTouching || this.gameState !== 'playing') return;
+            if (!isTouching || (this.gameState !== 'playing' && this.gameState !== 'racing')) return;
             
             const touch = e.touches[0];
             const deltaX = touch.clientX - touchStartX;
@@ -735,17 +749,19 @@ class CarRacingGame {
         
         // Update difficulty info
         this.difficultyInfo.textContent = difficulty === 'easy' 
-            ? 'Easy: AI max speed 0.2 pixels/frame, stuck timeout 10-15s' 
-            : 'Hard: AI max speed 8 pixels/frame, stuck timeout 2-3s';
+            ? 'Easy: AI max speed 0.2 pixels/frame, turn speed 30%, stuck timeout 10-15s' 
+            : 'Hard: AI max speed 8 pixels/frame, turn speed 80%, stuck timeout 2-3s';
         
-        // Update AI cars speed and stuck threshold - direct pixel values
+        // Update AI cars speed, turn speed, and stuck threshold - direct pixel values
         this.aiCars.forEach(car => {
             if (difficulty === 'easy') {
                 car.maxSpeed = 0.2; // Very slow for easy mode
                 car.speed = Math.min(car.speed, 0.2); // Immediately slow down current speed
+                car.turnSpeed = 3; // Reset to base turn speed (will be reduced to 30% in updateAICars)
                 car.stuckThreshold = 600 + Math.random() * 300; // 10-15 seconds for easy mode
             } else {
                 car.maxSpeed = 8; // Normal speed for hard mode
+                car.turnSpeed = 3; // Reset to base turn speed (will be reduced to 80% in updateAICars)
                 car.stuckThreshold = 120 + Math.random() * 60; // 2-3 seconds for hard mode
             }
         });
@@ -782,7 +798,7 @@ class CarRacingGame {
         this.playerCar.x = 200;
         this.playerCar.y = 300;
         this.playerCar.speed = 0;
-        this.playerCar.angle = 0;
+        this.playerCar.angle = 90; // Face right (east) to match track direction
         this.playerCar.boost = this.playerCar.maxBoost;
         
         const startPositions = [
@@ -796,6 +812,7 @@ class CarRacingGame {
             car.y = startPositions[index].y;
             car.speed = 3 + Math.random() * 2;
             car.angle = startPositions[index].angle;
+            car.turnSpeed = 3; // Match player car turn speed
             car.checkpoint = 0;
             car.lap = 1;
         });
@@ -805,9 +822,22 @@ class CarRacingGame {
     }
     
     updatePlayerCar() {
+        // Debug: Log player car state
+        // console.log('Player car state:', {
+        //     accelerating: this.playerCar.accelerating,
+        //     speed: this.playerCar.speed,
+        //     x: this.playerCar.x,
+        //     y: this.playerCar.y,
+        //     angle: this.playerCar.angle
+        // });
+        
         // Handle input using the properties set by input handlers
+       
+        
         if (this.playerCar.accelerating) {
+            const oldSpeed = this.playerCar.speed;
             this.playerCar.speed = Math.min(this.playerCar.speed + this.playerCar.acceleration, this.playerCar.maxSpeed);
+            console.log('Accelerating:', { oldSpeed, newSpeed: this.playerCar.speed });
         } else if (this.playerCar.braking) {
             this.playerCar.speed = Math.max(this.playerCar.speed - this.playerCar.acceleration, -this.playerCar.maxSpeed / 2);
         } else {
@@ -832,8 +862,27 @@ class CarRacingGame {
         
         // Update position based on speed and angle
         const radians = this.playerCar.angle * Math.PI / 180;
-        this.playerCar.x += Math.sin(radians) * this.playerCar.speed;
-        this.playerCar.y -= Math.cos(radians) * this.playerCar.speed;
+        const oldX = this.playerCar.x;
+        const oldY = this.playerCar.y;
+        const deltaX = Math.sin(radians) * this.playerCar.speed;
+        const deltaY = -Math.cos(radians) * this.playerCar.speed;
+        this.playerCar.x += deltaX;
+        this.playerCar.y += deltaY;
+        
+        // Debug: Log movement details
+        if (this.playerCar.speed > 0) {
+            console.log('Movement debug:', {
+                angle: this.playerCar.angle,
+                radians: radians,
+                speed: this.playerCar.speed,
+                sin: Math.sin(radians),
+                cos: Math.cos(radians),
+                deltaX: deltaX,
+                deltaY: deltaY,
+                oldPos: { x: oldX, y: oldY },
+                newPos: { x: this.playerCar.x, y: this.playerCar.y }
+            });
+        }
         
         // Keep car on track
         this.keepCarOnTrack(this.playerCar);
@@ -908,7 +957,7 @@ class CarRacingGame {
             if (movement < 2) { // Car barely moved (increased threshold)
                 car.stuckTimer++;
                 if (car.stuckTimer > 30) { // Log after 0.5 seconds
-                    console.log(`AI car stuck for ${car.stuckTimer} frames, movement: ${movement.toFixed(2)}`);
+    
                 }
             } else {
                 if (car.stuckTimer > 0) {
@@ -935,24 +984,38 @@ class CarRacingGame {
             }
             
             // Normal AI navigation
-            const targetAngle = Math.atan2(dx, -dy);
+            const targetAngleRadians = Math.atan2(dx, -dy);
+            const targetAngleDegrees = targetAngleRadians * 180 / Math.PI;
             
             // Smooth turning with track curvature consideration
-            let angleDiff = targetAngle - car.angle;
-            if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-            if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+            let angleDiff = targetAngleDegrees - car.angle;
+            if (angleDiff > 180) angleDiff -= 360;
+            if (angleDiff < -180) angleDiff += 360;
             
-            // Adjust turning speed based on distance and behavior
-            let turnSpeed = 0.05;
-            if (distance < 50) { // Close to checkpoint
-                turnSpeed = 0.08;
-            } else if (distance > 200) { // Far from checkpoint
-                turnSpeed = 0.03;
+            // Adjust turning speed based on distance, behavior, and difficulty
+            let turnSpeed = car.turnSpeed || 3;
+            
+            // Apply difficulty-based turning speed
+            if (this.difficulty === 'easy') {
+                turnSpeed = turnSpeed * 0.3; // 30% of normal speed for easy mode
+            } else {
+                turnSpeed = turnSpeed * 0.8; // 80% of normal speed for hard mode
             }
             
+            if (distance < 50) { // Close to checkpoint
+                turnSpeed = turnSpeed * 1.2; // 20% faster when close
+            } else if (distance > 200) { // Far from checkpoint
+                turnSpeed = turnSpeed * 0.8; // 20% slower when far
+            }
+            
+            // Limit maximum turn rate to prevent spinning
+            const maxTurnRate = 2; // Maximum degrees per frame
+            const actualTurnRate = Math.min(Math.abs(angleDiff), maxTurnRate);
+            const turnDirection = angleDiff > 0 ? 1 : -1;
+            
             // Add some randomness to prevent all cars from following identical paths
-            const randomFactor = (Math.random() - 0.5) * 0.02;
-            car.angle += (angleDiff + randomFactor) * turnSpeed;
+            const randomFactor = (Math.random() - 0.5) * 0.01; // Reduced randomness
+            car.angle += (actualTurnRate * turnDirection + randomFactor) * turnSpeed;
             
             // Adjust speed based on behavior, distance, and track section
             let targetSpeed = car.maxSpeed;
@@ -969,7 +1032,7 @@ class CarRacingGame {
             // Slow down when close to checkpoint or in tight turns
             if (distance < 30) {
                 targetSpeed *= 0.7;
-            } else if (Math.abs(angleDiff) > Math.PI / 4) { // Sharp turn
+            } else if (Math.abs(angleDiff) > 45) { // Sharp turn (45 degrees)
                 targetSpeed *= 0.8;
             }
             
@@ -987,12 +1050,13 @@ class CarRacingGame {
             
             // Debug: Log speed for first AI car
             if (i === 0) {
-                console.log(`AI car speed: ${car.speed.toFixed(2)}, maxSpeed: ${car.maxSpeed}, difficulty: ${this.difficulty}, lap: ${car.lap}/${this.totalLaps}`);
+
             }
             
-            // Update position
-            car.x += Math.sin(car.angle) * car.speed;
-            car.y -= Math.cos(car.angle) * car.speed;
+            // Update position - convert angle to radians for movement calculation
+            const angleRadians = car.angle * Math.PI / 180;
+            car.x += Math.sin(angleRadians) * car.speed;
+            car.y -= Math.cos(angleRadians) * car.speed;
             
             // Keep car on track
             this.keepCarOnTrack(car);
@@ -1115,6 +1179,7 @@ class CarRacingGame {
             car.x = startX + (index - 1) * (this.trackWidth * 20) / 800;
             car.y = startY;
             car.angle = 0;
+            car.turnSpeed = 3; // Match player car turn speed
             car.speed = 0;
             car.checkpoint = 0;
             car.lap = 1;
@@ -1195,7 +1260,7 @@ class CarRacingGame {
         positions.forEach((pos, i) => {
             const carType = i === 0 ? 'Player' : `AI ${i}`;
             const finished = pos.car.finished || (pos.car.lap >= this.totalLaps);
-            console.log(`${carType} car: progress ${pos.progress}, lap ${pos.car.lap}, checkpoint ${pos.car.checkpoint}, finished: ${finished}`);
+
         });
         
         positions.sort((a, b) => b.progress - a.progress);
@@ -1204,7 +1269,7 @@ class CarRacingGame {
         const playerPos = positions.find(p => p.index === 0);
         this.playerPosition = positions.indexOf(playerPos) + 1;
         
-        console.log(`Player position: ${this.playerPosition} out of ${positions.length}`);
+
     }
     
     calculateCarProgress(car) {
@@ -1270,7 +1335,7 @@ class CarRacingGame {
         }
         
         // Debug: Log track drawing to console
-        console.log('Track drawn - customTrack:', !!this.customTrack, 'trackPoints:', this.customTrack?.trackPoints?.length || 0);
+
     }
     
     drawDefaultTrack() {
@@ -1523,7 +1588,7 @@ class CarRacingGame {
     drawCar(car) {
         this.ctx.save();
         this.ctx.translate(car.x, car.y);
-        this.ctx.rotate(car.angle);
+        this.ctx.rotate(car.angle * Math.PI / 180); // Convert degrees to radians for canvas rotation
         
         // Check if car is on track for visual feedback
         const isOnTrack = this.isCarOnTrack(car);
@@ -1618,7 +1683,7 @@ class CarRacingGame {
     }
     
     update() {
-        if (this.gameState === 'racing') {
+        if (this.gameState === 'racing' || this.gameState === 'playing') {
             this.updatePlayerCar();
             this.updateAICars();
             this.checkPlayerCheckpoint();
