@@ -1,102 +1,176 @@
-# 🏁 Car Racing Championship 🏁
+# 🏁 Car Racing Game
 
-A thrilling car racing game built with HTML5 Canvas and JavaScript! Race against AI opponents on a challenging track and compete for the championship title.
+A fun and interactive car racing game built with HTML5 Canvas and JavaScript, featuring mobile gesture controls, AI opponents, and customizable tracks.
 
-## 🎮 Game Features
+## 🎮 Features
 
-- **Multi-lane Racing Track**: Navigate through a professional racing circuit with multiple lanes
-- **AI Opponents**: Compete against 3 intelligent AI cars with different racing behaviors
-- **Boost System**: Use limited boost power for strategic speed bursts
-- **Lap System**: Complete 3 laps to finish the race
-- **Real-time Position Tracking**: See your current position and lap progress
-- **Speed Meter**: Monitor your car's speed in real-time
-- **Modern UI**: Beautiful, responsive design with smooth animations
+### **Gameplay**
+- **3-Lap Racing**: Complete 3 laps to finish the race
+- **AI Opponents**: Race against 3 AI cars with different behaviors
+- **Checkpoint System**: Navigate through checkpoints to progress
+- **Boost System**: Limited boost for strategic speed bursts
+- **Off-Track Penalties**: Stay on track or face time penalties
 
-## 🎯 How to Play
+### **Controls**
 
-### Controls
-- **Arrow Keys** or **WASD**: Drive your car
-  - Up/W: Accelerate
-  - Down/S: Brake/Reverse
-  - Left/A: Turn left
-  - Right/D: Turn right
-- **Spacebar**: Activate boost (limited supply)
-- **R**: Restart the race
+#### **Desktop Controls**
+- **Arrow Keys** or **WASD**: Drive and steer
+- **Space**: Activate boost
+- **R**: Restart race
+- **D**: Toggle debug mode
+- **M**: Toggle mobile controls (for testing)
 
-### Gameplay
-1. **Start the Race**: Press any key to begin
-2. **Follow Checkpoints**: Navigate through numbered checkpoints in order
-3. **Complete Laps**: Finish 3 laps to complete the race
-4. **Use Boost Wisely**: Boost gives you extra speed but has limited supply
-5. **Beat Opponents**: Finish in 1st place to win!
+#### **Mobile Controls**
+- **Left Gesture Area** (Green): 
+  - ⬆️ Swipe Up = Accelerate
+  - ⬇️ Swipe Down = Brake/Reverse
+- **Right Gesture Area** (Blue):
+  - ⬅️ Swipe Left = Turn Left
+  - ➡️ Swipe Right = Turn Right
+- **Boost Button** (Orange): Tap to activate boost
+- **Multi-Touch Support**: Use both gesture areas simultaneously
 
-### Track Layout
-The track features:
-- **Outer and Inner Boundaries**: Stay within the track limits
-- **4 Checkpoints**: Navigate through them in sequence
-- **Multiple Lanes**: Choose your racing line strategically
+### **Difficulty Levels**
+- **Easy Mode**: AI max speed 0.2 pixels/frame, turn speed 30%, stuck timeout 10-15s
+- **Hard Mode**: AI max speed 8 pixels/frame, turn speed 80%, stuck timeout 2-3s
 
-## 🚗 Game Mechanics
-
-### Player Car
-- **Color**: Teal (#4ecdc4)
-- **Max Speed**: 8 units
-- **Boost**: Limited supply that recharges over time
-- **Handling**: Responsive steering and acceleration
-
-### AI Cars
-- **Colors**: Red, Orange, Blue, Green
-- **Behaviors**: Aggressive (faster) and Conservative (safer)
-- **Intelligence**: Follow checkpoints and maintain racing lines
-
-### Scoring System
-- **Position**: Real-time ranking among all cars
-- **Lap Progress**: Track completion percentage
-- **Speed**: Current velocity display
-
-## 🎨 Visual Features
-
-- **Smooth Animations**: 60 FPS gameplay
-- **Speed Lines**: Visual effects when driving fast
-- **Checkpoint Indicators**: Clear visual markers for navigation
-- **Modern UI**: Glassmorphism design with gradients
-- **Responsive Layout**: Works on different screen sizes
-
-## 🏆 Victory Conditions
-
-- **Win**: Finish the race in 1st place
-- **Complete**: Finish all 3 laps regardless of position
-- **Restart**: Use R key or restart button to try again
-
-## 🛠️ Technical Details
-
-- **Built with**: HTML5 Canvas, Vanilla JavaScript, CSS3
-- **No Dependencies**: Pure web technologies
-- **Cross-platform**: Works on any modern browser
-- **Responsive**: Adapts to different screen sizes
+### **Track System**
+- **Default Track**: Built-in racing circuit
+- **Custom Tracks**: Create your own tracks using the track editor
+- **Track Loading**: Load custom track files (.json format)
+- **Collision Detection**: Advanced collision system for custom tracks
 
 ## 🚀 Getting Started
 
-1. **Download** all files to a folder
-2. **Open** `index.html` in your web browser
-3. **Start Racing** by pressing any key
-4. **Enjoy** the game!
+### **Prerequisites**
+- Modern web browser with HTML5 Canvas support
+- Local web server (for custom track loading)
 
-## 🎯 Tips for Success
+### **Installation**
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/shaymark/car-racing-game.git
+   cd car-racing-game
+   ```
 
-- **Use Boost Strategically**: Save boost for straightaways and overtaking
-- **Take Smooth Lines**: Avoid sharp turns that slow you down
-- **Watch Your Position**: Keep track of other cars' progress
-- **Practice**: Learn the track layout for better lap times
+2. Start a local web server:
+   ```bash
+   python3 -m http.server 8000
+   # or
+   npx serve .
+   # or
+   php -S localhost:8000
+   ```
 
-## 🔧 Customization
+3. Open your browser and navigate to:
+   ```
+   http://localhost:8000
+   ```
 
-You can easily modify the game by editing the JavaScript file:
-- **Track Layout**: Change checkpoint positions
-- **Car Properties**: Adjust speed, handling, and boost
-- **AI Difficulty**: Modify opponent behaviors
-- **Visual Style**: Customize colors and effects
+## 🎨 Track Editor
+
+Access the track editor by clicking the "🎨 Track Editor" button in the game. Features include:
+
+- **Freehand Drawing**: Draw custom tracks with your mouse/touch
+- **Line and Curve Tools**: Create straight lines and curves
+- **Checkpoint Placement**: Add checkpoints for race progression
+- **Track Customization**: Choose colors and widths
+- **Export/Import**: Save and load custom tracks
+
+## 📱 Mobile Experience
+
+The game is optimized for mobile devices with:
+
+- **Responsive Design**: Adapts to different screen sizes
+- **Touch Gestures**: Intuitive swipe controls
+- **Multi-Touch Support**: Use both thumbs simultaneously
+- **Visual Feedback**: Clear indicators for active controls
+- **Auto-Detection**: Controllers appear automatically on mobile devices
+
+## 🏗️ Technical Details
+
+### **Architecture**
+- **Vanilla JavaScript**: No external dependencies
+- **HTML5 Canvas**: Smooth 2D graphics rendering
+- **CSS3**: Modern styling with animations
+- **Local Storage**: Persistent track data
+
+### **Performance**
+- **60 FPS Game Loop**: Smooth gameplay
+- **Optimized Rendering**: Efficient canvas operations
+- **Touch Event Handling**: Responsive mobile controls
+- **Memory Management**: Clean object lifecycle
+
+### **Browser Compatibility**
+- Chrome 60+
+- Firefox 55+
+- Safari 12+
+- Edge 79+
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## 🎯 Game Mechanics
+
+### **Car Physics**
+- **Acceleration/Deceleration**: Realistic speed changes
+- **Turning**: Smooth steering with momentum
+- **Collision Detection**: Track boundary enforcement
+- **Boost System**: Temporary speed increase
+
+### **AI Behavior**
+- **Checkpoint Navigation**: AI follows optimal paths
+- **Stuck Detection**: Automatic recovery from obstacles
+- **Difficulty Scaling**: Adjustable AI performance
+- **Random Variation**: Unique behavior patterns
+
+### **Scoring System**
+- **Position Tracking**: Real-time race position
+- **Lap Progress**: Percentage completion
+- **Checkpoint System**: Progress validation
+- **Finish Detection**: Race completion logic
+
+## 🔧 Development
+
+### **File Structure**
+```
+car-racing-game/
+├── index.html          # Main game page
+├── game.js             # Core game logic
+├── styles.css          # Game styling
+├── track-editor.html   # Track editor page
+├── track-editor.js     # Editor functionality
+├── track-editor-styles.css # Editor styling
+├── my_track.json       # Default track data
+├── README.md           # This file
+└── MOBILE_INSTRUCTIONS.md # Mobile setup guide
+```
+
+### **Key Classes**
+- `CarRacingGame`: Main game controller
+- `Player Car`: User-controlled vehicle
+- `AI Cars`: Computer-controlled opponents
+- `Track System`: Collision detection and rendering
+- `Mobile Controllers`: Touch gesture handling
+
+## 🐛 Debugging
+
+Enable debug mode by pressing `D` to see:
+- Collision boundaries
+- AI pathfinding
+- Performance metrics
+- Touch event logging
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+If you encounter any issues or have questions, please open an issue on GitHub.
 
 ---
 
-**Have fun racing! 🏁🏎️💨** 
+**Enjoy racing! 🏎️💨** 
