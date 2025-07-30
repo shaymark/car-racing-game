@@ -98,11 +98,9 @@ body {
 #editorCanvas {
     border: 3px solid #4ecdc4;
     border-radius: 10px;
-    background: #ffffff;
+    background: #2c3e50;
     cursor: crosshair;
-    display: block;
-    width: 100%;
-    max-width: 800px;
+    max-width: 100%;
     height: auto;
 }
 
@@ -206,8 +204,40 @@ body {
 }
 
 .instructions li {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.mobile-instructions {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #4ecdc4;
+}
+
+.mobile-instructions h4 {
+    color: #4ecdc4;
     margin-bottom: 8px;
-    color: #ecf0f1;
+    font-size: 14px;
+}
+
+.mobile-instructions ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.mobile-instructions li {
+    margin-bottom: 4px;
+    font-size: 12px;
+    padding-left: 15px;
+    position: relative;
+}
+
+.mobile-instructions li::before {
+    content: "📱";
+    position: absolute;
+    left: 0;
 }
 
 .status-bar {

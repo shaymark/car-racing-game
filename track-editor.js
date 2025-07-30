@@ -6,6 +6,7 @@ class TrackEditor {
         this.currentTool = 'line';
         this.trackWidth = 40;
         this.trackColor = '#0066cc';
+        this.checkpointMode = false;
         
         // Track data
         this.trackPoints = [];
@@ -32,6 +33,20 @@ class TrackEditor {
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        
+        // Touch events for mobile
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleTouchStart(e);
+        });
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            this.handleTouchMove(e);
+        });
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.handleTouchEnd(e);
+        });
         
         // Tool controls
         document.getElementById('drawingTool').addEventListener('change', (e) => {
@@ -197,16 +212,57 @@ class TrackEditor {
     }
     
     handleCanvasClick(e) {
-        if (this.currentTool === 'checkpoint') {
+        if (this.checkpointMode) {
             const pos = this.getMousePos(e);
             this.addCheckpointAt(pos);
-            
-            // Reset to normal drawing mode after adding checkpoint
-            this.currentTool = 'line';
-            this.canvas.style.cursor = 'crosshair';
-            this.canvas.style.border = '3px solid #4ecdc4';
-            this.updateStatus('Checkpoint added! Ready to draw again');
+            this.checkpointMode = false;
+            this.canvas.classList.remove('checkpoint-mode');
+            this.updateStatus('Checkpoint added');
         }
+    }
+    
+    // Touch handlers for mobile
+    handleTouchStart(e) {
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        this.handleMouseDown(mouseEvent);
+    }
+    
+    handleTouchMove(e) {
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        this.handleMouseMove(mouseEvent);
+    }
+    
+    handleTouchEnd(e) {
+        const mouseEvent = new MouseEvent('mouseup', {});
+        this.handleMouseUp(mouseEvent);
+        
+        // Handle checkpoint mode for touch
+        if (this.checkpointMode && e.changedTouches.length > 0) {
+            const touch = e.changedTouches[0];
+            const pos = this.getTouchPos(touch);
+            this.addCheckpointAt(pos);
+            this.checkpointMode = false;
+            this.canvas.classList.remove('checkpoint-mode');
+            this.updateStatus('Checkpoint added');
+        }
+    }
+    
+    getTouchPos(touch) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        return {
+            x: (touch.clientX - rect.left) * scaleX,
+            y: (touch.clientY - rect.top) * scaleY
+        };
     }
     
     drawLine(start, end) {
@@ -264,14 +320,14 @@ class TrackEditor {
     }
     
     addCheckpoint() {
-        this.currentTool = 'checkpoint';
+        this.checkpointMode = true;
         this.updateStatus('Click on track to add checkpoint');
         
         // Change cursor to indicate checkpoint mode
         this.canvas.style.cursor = 'crosshair';
         
         // Add visual feedback
-        this.canvas.style.border = '3px solid #f39c12';
+        this.canvas.classList.add('checkpoint-mode');
     }
     
     addCheckpointAt(pos) {
@@ -425,35 +481,19 @@ class TrackEditor {
     }
     
     redrawCanvas() {
-        console.log('Redrawing canvas with', this.trackPoints.length, 'track points');
+        // Clear canvas and redraw everything
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Redraw track
-        this.ctx.strokeStyle = this.trackColor;
-        this.ctx.lineWidth = this.trackWidth;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        
-        let drawnSegments = 0;
-        this.trackPoints.forEach((point, index) => {
+        // Redraw all track points
+        this.trackPoints.forEach(point => {
             if (point.type === 'line') {
-                this.ctx.beginPath();
-                this.ctx.moveTo(point.start.x, point.start.y);
-                this.ctx.lineTo(point.end.x, point.end.y);
-                this.ctx.stroke();
-                drawnSegments++;
+                this.drawLine(point.start, point.end);
             } else if (point.type === 'curve') {
-                this.ctx.beginPath();
-                this.ctx.moveTo(point.start.x, point.start.y);
-                this.ctx.quadraticCurveTo(point.control.x, point.control.y, point.end.x, point.end.y);
-                this.ctx.stroke();
-                drawnSegments++;
+                this.drawCurve(point.start, point.end);
             }
         });
         
-        console.log('Drew', drawnSegments, 'segments');
-        
-        // Redraw checkpoints
+        // Redraw all checkpoints
         this.checkpoints.forEach(checkpoint => {
             this.drawCheckpoint(checkpoint);
         });

@@ -2,7 +2,7 @@ class CarRacingGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.gameState = 'menu'; // menu, racing, finished
+        this.gameState = 'playing'; // Start in playing state so controls work immediately
         
         // Game settings
         this.laps = 3;
@@ -43,7 +43,13 @@ class CarRacingGame {
             boostRecharge: 0.5,
             color: '#ffff00', // Yellow for player car
             offTrackTime: 0,
-            maxOffTrackTime: 3 // 3 seconds penalty for being off track
+            maxOffTrackTime: 3, // 3 seconds penalty for being off track
+            // Input state properties
+            accelerating: false,
+            braking: false,
+            turningLeft: false,
+            turningRight: false,
+            boosting: false
         };
         
         // AI cars
@@ -66,31 +72,36 @@ class CarRacingGame {
     }
     
     loadDefaultTrack() {
-        // First try to load from localStorage (user's custom track)
-        const customTrack = this.loadCustomTrack();
-        if (customTrack) {
-            this.customTrack = customTrack;
-            console.log('Loaded custom track from localStorage');
-            return;
-        }
+        console.log('=== Track Loading Debug ===');
         
-        // If no custom track, try to load my_track.json as default
+        // Always try to load my_track.json first to ensure consistency across devices
         fetch('my_track.json')
             .then(response => {
                 if (response.ok) {
+                    console.log('my_track.json found, loading...');
                     return response.json();
                 } else {
-                    throw new Error('my_track.json not found, using built-in default track');
+                    throw new Error('my_track.json not found');
                 }
             })
             .then(trackData => {
-                console.log('Loaded default track from my_track.json:', trackData);
+                console.log('Loaded track from my_track.json:', trackData);
+                console.log('Track points count:', trackData.trackPoints?.length || 0);
                 this.loadTrackData(trackData);
             })
             .catch(error => {
-                console.log('Using built-in default track:', error.message);
-                // Use built-in default track if my_track.json doesn't exist
-                this.customTrack = null;
+                console.log('my_track.json not available, checking localStorage:', error.message);
+                
+                // Fallback to localStorage if my_track.json fails
+                const customTrack = this.loadCustomTrack();
+                if (customTrack) {
+                    console.log('Found custom track in localStorage');
+                    this.customTrack = customTrack;
+                    console.log('Loaded custom track from localStorage');
+                } else {
+                    console.log('No track found, using built-in default track');
+                    this.customTrack = null;
+                }
             });
     }
     
@@ -479,44 +490,203 @@ class CarRacingGame {
     }
     
     setupInputHandling() {
+        console.log('Setting up input handling...');
+        
+        // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            this.keys[e.code] = true;
+            console.log('Key pressed:', e.key, 'Game state:', this.gameState);
             
-            if (this.gameState === 'menu') {
-                this.startRace();
+            if (this.gameState === 'playing') {
+                switch(e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        console.log('Accelerating');
+                        this.playerCar.accelerating = true;
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        console.log('Braking');
+                        this.playerCar.braking = true;
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        console.log('Turning left');
+                        this.playerCar.turningLeft = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        console.log('Turning right');
+                        this.playerCar.turningRight = true;
+                        break;
+                    case ' ':
+                        console.log('Boosting');
+                        this.playerCar.boosting = true;
+                        break;
+                }
             }
             
-            if (e.code === 'KeyR') {
+            if (e.key === 'r' || e.key === 'R') {
                 this.restartRace();
             }
             
-            if (e.code === 'KeyD') {
+            if (e.key === 'd' || e.key === 'D') {
                 this.debugMode = !this.debugMode;
-                console.log('Debug mode:', this.debugMode ? 'ON' : 'OFF');
-            }
-            
-            if (e.code === 'KeyR' && e.ctrlKey) {
-                // Ctrl+R to reset all AI cars
-                this.resetAllAICars();
-                console.log('All AI cars reset');
+                console.log('Debug mode:', this.debugMode);
             }
         });
         
         document.addEventListener('keyup', (e) => {
-            this.keys[e.code] = false;
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    this.playerCar.accelerating = false;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    this.playerCar.braking = false;
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    this.playerCar.turningLeft = false;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    this.playerCar.turningRight = false;
+                    break;
+                case ' ':
+                    this.playerCar.boosting = false;
+                    break;
+            }
         });
         
-        document.getElementById('restart-btn').addEventListener('click', () => {
-            this.restartRace();
+        // Touch controls for mobile
+        this.setupTouchControls();
+        
+        console.log('Input handling setup complete');
+    }
+    
+    setupTouchControls() {
+        console.log('Setting up touch controls...');
+        const canvas = document.getElementById('gameCanvas');
+        
+        if (!canvas) {
+            console.error('Canvas not found for touch controls');
+            return;
+        }
+        
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouching = false;
+        
+        // Touch start
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            console.log('Touch start, game state:', this.gameState);
+            
+            if (this.gameState !== 'playing') return;
+            
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isTouching = true;
+            
+            // Start acceleration when touching
+            this.playerCar.accelerating = true;
+            console.log('Touch: Accelerating');
         });
         
-        document.getElementById('editor-btn').addEventListener('click', () => {
-            window.open('track-editor.html', '_blank');
+        // Touch move (steering)
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isTouching || this.gameState !== 'playing') return;
+            
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            
+            // Reset turning
+            this.playerCar.turningLeft = false;
+            this.playerCar.turningRight = false;
+            
+            // Steer based on horizontal movement
+            if (Math.abs(deltaX) > 20) { // Dead zone
+                if (deltaX > 0) {
+                    this.playerCar.turningRight = true;
+                    console.log('Touch: Turning right');
+                } else {
+                    this.playerCar.turningLeft = true;
+                    console.log('Touch: Turning left');
+                }
+            }
+            
+            // Boost based on vertical movement (swipe up)
+            if (deltaY < -30) {
+                this.playerCar.boosting = true;
+                console.log('Touch: Boosting');
+            } else {
+                this.playerCar.boosting = false;
+            }
         });
         
-        document.getElementById('load-track-btn').addEventListener('click', () => {
-            this.loadTrackFile();
+        // Touch end
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            console.log('Touch end');
+            isTouching = false;
+            
+            // Stop all controls
+            this.playerCar.accelerating = false;
+            this.playerCar.braking = false;
+            this.playerCar.turningLeft = false;
+            this.playerCar.turningRight = false;
+            this.playerCar.boosting = false;
         });
+        
+        // Prevent default touch behaviors
+        canvas.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            console.log('Touch cancel');
+            isTouching = false;
+            
+            // Stop all controls
+            this.playerCar.accelerating = false;
+            this.playerCar.braking = false;
+            this.playerCar.turningLeft = false;
+            this.playerCar.turningRight = false;
+            this.playerCar.boosting = false;
+        });
+        
+        // Button event listeners
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                this.restartRace();
+            });
+        }
+        
+        const editorBtn = document.getElementById('editor-btn');
+        if (editorBtn) {
+            editorBtn.addEventListener('click', () => {
+                window.open('track-editor.html', '_blank');
+            });
+        }
+        
+        const loadTrackBtn = document.getElementById('load-track-btn');
+        if (loadTrackBtn) {
+            loadTrackBtn.addEventListener('click', () => {
+                this.loadTrackFile();
+            });
+        }
+        
+        console.log('Touch controls setup complete');
     }
     
     setupUI() {
@@ -635,52 +805,58 @@ class CarRacingGame {
     }
     
     updatePlayerCar() {
-        // Handle input
-        if (this.keys['ArrowUp'] || this.keys['KeyW']) {
+        // Handle input using the properties set by input handlers
+        if (this.playerCar.accelerating) {
             this.playerCar.speed = Math.min(this.playerCar.speed + this.playerCar.acceleration, this.playerCar.maxSpeed);
-        } else if (this.keys['ArrowDown'] || this.keys['KeyS']) {
+        } else if (this.playerCar.braking) {
             this.playerCar.speed = Math.max(this.playerCar.speed - this.playerCar.acceleration, -this.playerCar.maxSpeed / 2);
         } else {
             this.playerCar.speed *= 0.95; // Natural deceleration
         }
         
-        if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
+        if (this.playerCar.turningLeft) {
             this.playerCar.angle -= this.playerCar.turnSpeed;
         }
-        if (this.keys['ArrowRight'] || this.keys['KeyD']) {
+        if (this.playerCar.turningRight) {
             this.playerCar.angle += this.playerCar.turnSpeed;
         }
         
         // Boost
-        if (this.keys['Space'] && this.playerCar.boost > 0) {
+        if (this.playerCar.boosting && this.playerCar.boost > 0) {
             this.playerCar.speed = Math.min(this.playerCar.speed + 0.5, this.playerCar.maxSpeed * 1.5);
             this.playerCar.boost = Math.max(0, this.playerCar.boost - 1);
         } else {
+            // Recharge boost when not using it
             this.playerCar.boost = Math.min(this.playerCar.maxBoost, this.playerCar.boost + this.playerCar.boostRecharge);
         }
         
-        // Update position
-        this.playerCar.x += Math.sin(this.playerCar.angle) * this.playerCar.speed;
-        this.playerCar.y -= Math.cos(this.playerCar.angle) * this.playerCar.speed;
+        // Update position based on speed and angle
+        const radians = this.playerCar.angle * Math.PI / 180;
+        this.playerCar.x += Math.sin(radians) * this.playerCar.speed;
+        this.playerCar.y -= Math.cos(radians) * this.playerCar.speed;
         
         // Keep car on track
         this.keepCarOnTrack(this.playerCar);
         
-        // Handle off-track penalty - 500ms timeout
+        // Check if car is off track
         if (!this.isCarOnTrack(this.playerCar)) {
-            this.playerCar.offTrackTime += 1/60; // Assuming 60 FPS
-            if (this.playerCar.offTrackTime >= 0.5) { // 500 milliseconds
-                // Reset car to last checkpoint
-                const lastCheckpoint = this.checkpoints[Math.max(0, this.currentCheckpoint - 1)];
-                this.playerCar.x = lastCheckpoint.x;
-                this.playerCar.y = lastCheckpoint.y;
-                this.playerCar.speed = 0;
+            this.playerCar.offTrackTime += 16; // Assuming 60fps (16ms per frame)
+            if (this.playerCar.offTrackTime > 500) { // 500ms = 0.5 seconds
+                // Return to last checkpoint
+                const lastCheckpoint = this.checkpoints[this.currentCheckpoint];
+                if (lastCheckpoint) {
+                    this.playerCar.x = lastCheckpoint.x;
+                    this.playerCar.y = lastCheckpoint.y;
+                    this.playerCar.speed = 0;
+                }
                 this.playerCar.offTrackTime = 0;
-                console.log(`Player car returned to checkpoint ${Math.max(0, this.currentCheckpoint - 1)} after being off track for 500ms`);
             }
         } else {
             this.playerCar.offTrackTime = 0;
         }
+        
+        // Check checkpoint
+        this.checkPlayerCheckpoint();
     }
     
     updateAICars() {
@@ -929,14 +1105,14 @@ class CarRacingGame {
     resetAllAICars() {
         this.aiCars.forEach((car, index) => {
             // Reset to start position
-            let startX = 200, startY = 300;
+            let startX = this.trackWidth * 0.25, startY = this.trackHeight * 0.5;
             if (this.customTrack && this.customTrack.startPosition) {
                 startX = this.customTrack.startPosition.x;
                 startY = this.customTrack.startPosition.y;
             }
             
             // Stagger positions
-            car.x = startX + (index - 1) * 20;
+            car.x = startX + (index - 1) * (this.trackWidth * 20) / 800;
             car.y = startY;
             car.angle = 0;
             car.speed = 0;

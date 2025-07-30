@@ -95,6 +95,15 @@ body {
     opacity: 0.9;
 }
 
+.mobile-controls {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-left: 3px solid #4ecdc4;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
 .editor-btn {
     background: linear-gradient(45deg, #ff6b6b, #ff8e53);
     color: white;
